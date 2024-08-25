@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.kotlin.kapt)
 }
 
 android {
@@ -37,11 +38,28 @@ android {
 
 dependencies {
 
+    //Retrofit
+    implementation(libs.retrofit2.retrofit)
+    implementation(libs.retrofit2.converter)
+    implementation(libs.retrofit2.okHttp3)
+
+    //Coroutines
+    implementation(libs.coroutines.core)
+    implementation(libs.coroutines.android)
+
+    //Dagger2
+    implementation(libs.dagger2.dagger)
+    kapt (libs.dagger2.compiler)
+
+    //Google Play Location
+    implementation(libs.google.location)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.swiperefresh)
+    implementation(libs.material)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
