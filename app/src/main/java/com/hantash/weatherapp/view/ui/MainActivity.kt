@@ -5,10 +5,12 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.AppCompatButton
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
@@ -24,19 +26,25 @@ import com.hantash.weatherapp.model.repo.WeatherRepository
 import com.hantash.weatherapp.model.utils.Constant
 import com.hantash.weatherapp.model.utils.Constant.Companion.LOCATION_PERMISSION_REQUEST_CODE
 import com.hantash.weatherapp.model.utils.DialogNavigator
+import com.hantash.weatherapp.model.utils.beautifyToString
+import com.hantash.weatherapp.model.utils.toDateTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     private lateinit var swipeRefresh: SwipeRefreshLayout
-    private lateinit var tvCity: TextView
+    private lateinit var btnRefresh: AppCompatButton
+    private lateinit var tvLocation: TextView
+    private lateinit var tvLastUpdate: TextView
     private lateinit var tvTemperature: TextView
-    private lateinit var tvCloud: TextView
     private lateinit var tvCondition: TextView
+    private lateinit var tvHumidity: TextView
+    private lateinit var tvFeelsLike: TextView
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private lateinit var dialogNavigator: DialogNavigator
@@ -79,10 +87,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun initView() {
         swipeRefresh = findViewById(R.id.swipe_refresh)
-        tvCity = findViewById(R.id.tv_city)
+        btnRefresh = findViewById(R.id.btn_refresh)
+        tvLocation = findViewById(R.id.tv_location)
+        tvLastUpdate = findViewById(R.id.tv_last_update)
         tvTemperature = findViewById(R.id.tv_temperature)
-        tvCloud = findViewById(R.id.tv_cloud)
         tvCondition = findViewById(R.id.tv_condition)
+        tvHumidity = findViewById(R.id.tv_humidity)
+        tvFeelsLike = findViewById(R.id.tv_feels_like)
+
+        btnRefresh.visibility = View.GONE
+        btnRefresh.setOnClickListener {
+            getCurrentLocation()
+        }
     }
 
     private fun getCurrentLocation() {
@@ -142,9 +158,18 @@ class MainActivity : AppCompatActivity() {
     private fun updateUI(weatherResponse: WeatherResponse) {
         val weather = weatherResponse.weather
         val location = weatherResponse.location
-        tvCity.text = location.name
-        tvTemperature.text = Math.round(weather.temperatureCel).toString()
-        tvCloud.text = weather.condition.text
+        val tempStr = Math.round(weather.temperatureCel).toString()
+        val feelsLike = Math.round(weather.feelLikeCel).toString()
+        val lastUpdate = weather.lastUpdated.toDateTime()
+
+        tvLocation.text = String.format("%s, %s", location.name, location.country)
+        tvLastUpdate.text = lastUpdate.beautifyToString()
+        tvTemperature.text = String.format("%s°", tempStr)
+        tvCondition.text = String.format("Condition: %s", weather.condition.text)
+        tvHumidity.text = String.format("Humidity: %s", weather.humidity)
+        tvFeelsLike.text = String.format("Feels Like: %s°", feelsLike)
+        btnRefresh.text = String.format("Last Update at: %s", lastUpdate.beautifyToString())
+        btnRefresh.visibility = View.VISIBLE
     }
 
     private fun showProgressIndicator() {
