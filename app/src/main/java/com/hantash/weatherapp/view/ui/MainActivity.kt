@@ -7,36 +7,25 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.TextView
-import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatButton
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.ViewModelProvider
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
 import com.hantash.weatherapp.R
 import com.hantash.weatherapp.model.data.WeatherResponse
 import com.hantash.weatherapp.model.network.ResultAPI
-import com.hantash.weatherapp.model.network.WeatherAPI
-import com.hantash.weatherapp.model.repo.WeatherRepository
-import com.hantash.weatherapp.model.utils.Constant
 import com.hantash.weatherapp.model.utils.Constant.Companion.LOCATION_PERMISSION_REQUEST_CODE
 import com.hantash.weatherapp.model.utils.DialogNavigator
 import com.hantash.weatherapp.model.utils.beautifyToString
 import com.hantash.weatherapp.model.utils.toDateTime
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import java.util.Locale
+import com.hantash.weatherapp.view.BaseActivity
+import com.hantash.weatherapp.viewmodel.LocationViewModel
+import com.hantash.weatherapp.viewmodel.MyViewModelFactory
+import com.hantash.weatherapp.viewmodel.WeatherViewModel
+import javax.inject.Inject
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : BaseActivity() {
     private lateinit var swipeRefresh: SwipeRefreshLayout
     private lateinit var btnRefresh: AppCompatButton
     private lateinit var tvLocation: TextView
@@ -45,26 +34,46 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvCondition: TextView
     private lateinit var tvHumidity: TextView
     private lateinit var tvFeelsLike: TextView
-    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    private lateinit var dialogNavigator: DialogNavigator
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    @Inject lateinit var viewModelFactory: MyViewModelFactory
+    @Inject lateinit var dialogNavigator: DialogNavigator
+    private lateinit var viewModel: WeatherViewModel
+    private lateinit var locationViewModel: LocationViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        activityComponent.inject(this)
         setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.swipe_refresh)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
 
         initView()
 
-        dialogNavigator = DialogNavigator(supportFragmentManager)
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        //Viewmodel
+        viewModel = ViewModelProvider(this, viewModelFactory).get(WeatherViewModel::class.java)
+        locationViewModel = ViewModelProvider(this, viewModelFactory).get(LocationViewModel::class.java)
 
+        //Observer Location
+        locationViewModel.locationLiveData.observe(this) { location ->
+            if (location != null) {
+                getCurrentWeather(location)
+            }
+        }
+
+        //Observer Weather
+        viewModel.weatherLiveData.observe(this) { result ->
+            when (result) {
+                is ResultAPI.SUCCESS -> {
+                    hideProgressIndicator()
+                    updateUI(result.weatherResponse)
+                }
+
+                is ResultAPI.FAILURE -> {
+                    hideProgressIndicator()
+                    dialogNavigator.showServerError()
+                }
+            }
+        }
+
+        //Checking for Location Permissions
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_PERMISSION_REQUEST_CODE)
         } else {
@@ -95,63 +104,10 @@ class MainActivity : AppCompatActivity() {
         tvHumidity = findViewById(R.id.tv_humidity)
         tvFeelsLike = findViewById(R.id.tv_feels_like)
 
+        swipeRefresh.isEnabled = false
         btnRefresh.visibility = View.GONE
         btnRefresh.setOnClickListener {
             getCurrentLocation()
-        }
-    }
-
-    private fun getCurrentLocation() {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
-        fusedLocationClient.lastLocation
-            .addOnSuccessListener { location: Location? ->
-                if (location != null) {
-                    val latitude = location.latitude
-                    val longitude = location.longitude
-                    val latLng = "$latitude,$longitude"
-                    fetchCurrentWeather(latLng)
-                    Log.d("app-debug", "LatLng: $latLng")
-                } else {
-                    Log.d("app-debug", "Unable to get location")
-                }
-            }
-            .addOnFailureListener {
-                Log.d("app-debug", "Failed to get location: ${it.message}")
-            }
-    }
-
-    private fun fetchCurrentWeather(latLng: String) {
-        val retrofit = Retrofit.Builder()
-            .baseUrl(Constant.BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-
-        val weatherAPI = retrofit.create(WeatherAPI::class.java)
-        val weatherRepository = WeatherRepository(weatherAPI)
-
-        coroutineScope.launch {
-            showProgressIndicator()
-            try {
-                when(val result = weatherRepository.fetchCurrentWeather(latLng)) {
-                    is ResultAPI.SUCCESS -> {
-                        updateUI(result.weatherResponse)
-                    }
-                    is ResultAPI.FAILURE -> {
-                        dialogNavigator.showServerError()
-                    }
-                }
-            } finally {
-                hideProgressIndicator()
-            }
         }
     }
 
@@ -178,6 +134,20 @@ class MainActivity : AppCompatActivity() {
 
     private fun hideProgressIndicator() {
         swipeRefresh.isRefreshing = false
+    }
 
+    private fun getCurrentLocation() {
+        locationViewModel.fetchCurrentLocation()
+    }
+
+    private fun getCurrentWeather(location: Location) {
+        val lat = location.latitude
+        val lon = location.longitude
+        val latLng = "$lat,$lon"
+
+        showProgressIndicator()
+        viewModel.fetchCurrentWeather(latLng)
+
+        Log.d("app-debug", "latLng:: $latLng")
     }
 }
