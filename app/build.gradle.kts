@@ -54,6 +54,9 @@ dependencies {
     //Google Play Location
     implementation(libs.google.location)
 
+    //ViewModel
+    implementation(libs.viewmodel.lifecycle)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity)

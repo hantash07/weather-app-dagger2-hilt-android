@@ -21,8 +21,6 @@ class WeatherRepository(
             } catch(t: Throwable) {
                 return@withContext ResultAPI.FAILURE
             }
-
-
         }
     }
 
