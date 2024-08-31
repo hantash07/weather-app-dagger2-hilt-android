@@ -4,8 +4,9 @@ import com.hantash.weatherapp.model.network.ResultAPI
 import com.hantash.weatherapp.model.network.WeatherAPI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-class WeatherRepository(
+class WeatherRepository @Inject constructor(
     private val weatherAPI: WeatherAPI
 ) {
 
