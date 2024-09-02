@@ -15,7 +15,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.hantash.weatherapp.R
 import com.hantash.weatherapp.model.data.WeatherResponse
 import com.hantash.weatherapp.model.network.ResultAPI
-import com.hantash.weatherapp.model.utils.Constant.Companion.LOCATION_PERMISSION_REQUEST_CODE
+import com.hantash.weatherapp.model.utils.Constant
 import com.hantash.weatherapp.model.utils.DialogNavigator
 import com.hantash.weatherapp.model.utils.beautifyToString
 import com.hantash.weatherapp.model.utils.toDateTime
@@ -75,7 +75,7 @@ class MainActivity : BaseActivity() {
 
         //Checking for Location Permissions
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_PERMISSION_REQUEST_CODE)
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), Constant.LOCATION_PERMISSION_REQUEST_CODE)
         } else {
             getCurrentLocation()
         }
@@ -87,7 +87,7 @@ class MainActivity : BaseActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+        if (requestCode == Constant.LOCATION_PERMISSION_REQUEST_CODE) {
             if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
                 getCurrentLocation()
             }
