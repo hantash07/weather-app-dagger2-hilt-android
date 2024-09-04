@@ -12,15 +12,16 @@ import dagger.Module
 import dagger.Provides
 
 @Module
-class ActivityModule(private val activity: AppCompatActivity) {
+object ActivityModule {
+
+//    @Provides
+//    fun activity() = activity
+//
+//    @Provides
+//    fun fragmentManager() = activity.supportFragmentManager
 
     @Provides
-    fun activity() = activity
-
-    @Provides
-    fun fragmentManager() = activity.supportFragmentManager
-
-    @Provides
+    @ActivityScope
     fun fusedLocationProvider(activity: AppCompatActivity) : FusedLocationProviderClient {
         return LocationServices.getFusedLocationProviderClient(activity)
     }

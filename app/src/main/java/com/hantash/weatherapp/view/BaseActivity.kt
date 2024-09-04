@@ -1,17 +1,21 @@
 package com.hantash.weatherapp.view
 
 import androidx.appcompat.app.AppCompatActivity
+import com.hantash.weatherapp.MainApplication
 import com.hantash.weatherapp.di.activiry.ActivityModule
 import com.hantash.weatherapp.di.app.AppModule
 import com.hantash.weatherapp.di.app.DaggerAppComponent
 
 open class BaseActivity: AppCompatActivity() {
 
-    private val appComponent get() =
-        DaggerAppComponent.builder()
-            .appModule(AppModule(application))
-            .build()
+    private val appComponent get() = (application as MainApplication).appComponent
 
-    val activityComponent get() = appComponent.newActivityComponent(ActivityModule(this))
+    val activityComponent by lazy {
+        appComponent.newActivityComponent()
+            .activity(this)
+            .fragmentManager(this.supportFragmentManager)
+            .activityModule(ActivityModule)
+            .build()
+    }
 
 }
