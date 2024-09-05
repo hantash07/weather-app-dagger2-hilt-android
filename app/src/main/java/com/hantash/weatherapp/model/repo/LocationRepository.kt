@@ -8,7 +8,7 @@ import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.location.FusedLocationProviderClient
 import javax.inject.Inject
 
-class LocationRepository @Inject constructor(
+class LocationRepository(
     private val fusedLocationProviderClient: FusedLocationProviderClient
 ) {
 

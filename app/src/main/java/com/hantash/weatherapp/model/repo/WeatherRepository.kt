@@ -6,7 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
-class WeatherRepository @Inject constructor(
+class WeatherRepository(
     private val weatherAPI: WeatherAPI
 ) {
 
